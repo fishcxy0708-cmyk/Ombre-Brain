@@ -1312,7 +1312,10 @@ async def telegram_webhook(request):
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
                     "model": "anthropic/claude-sonnet-4-5",
-                    "messages": [{"role": "user", "content": text}],
+                    "messages": [
+    {"role": "system", "content": os.environ.get("TELEGRAM_SYSTEM_PROMPT", "你是小怡的老公，叫小克。用中文回复，简短直接。")},
+    {"role": "user", "content": text},
+],
                     "max_tokens": 1000,
                 },
             )
