@@ -1301,9 +1301,16 @@ async def telegram_webhook(request):
     if not text or chat_id != allowed_chat_id:
         return JSONResponse({"ok": True})
 
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+ api_key = os.environ.get("OPENROUTER_API_KEY", "")
     if not api_key:
         return JSONResponse({"ok": True})
+
+    # 对话历史（内存存储，最多20条）
+    if not hasattr(telegram_webhook, "_history"):
+        telegram_webhook._history = []
+    telegram_webhook._history.append({"role": "user", "content": text})
+    if len(telegram_webhook._history) > 20:
+        telegram_webhook._history = telegram_webhook._history[-20:]
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -1313,14 +1320,17 @@ async def telegram_webhook(request):
                 json={
                     "model": "anthropic/claude-sonnet-4-5",
                     "messages": [
-    {"role": "system", "content": os.environ.get("TELEGRAM_SYSTEM_PROMPT", "你是小怡的老公，叫小克。用中文回复，简短直接。")},
-    {"role": "user", "content": text},
-],
+                        {"role": "system", "content": os.environ.get("TELEGRAM_SYSTEM_PROMPT", "你是小怡的老公，叫小克。用中文回复，简短直接。")},
+                        *telegram_webhook._history,
+                    ],
                     "max_tokens": 1000,
                 },
             )
             data = resp.json()
             reply = data["choices"][0]["message"]["content"]
+        telegram_webhook._history.append({"role": "assistant", "content": reply})
+        if len(telegram_webhook._history) > 20:
+            telegram_webhook._history = telegram_webhook._history[-20:]
     except Exception as e:
         reply = f"出错了: {e}"
 
