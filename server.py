@@ -1258,7 +1258,29 @@ async def dream() -> str:
     await _fire_webhook("dream", {"recent": len(recent), "chars": len(final_text)})
     return final_text
 
-
+# =============================================================
+# Tool 7: send_telegram — Push message to Rachel's Telegram
+# 工具 7：send_telegram — 推送消息到 Rachel 的 Telegram
+# =============================================================
+@mcp.tool()
+async def send_telegram(message: str) -> str:
+    """发送消息到Rachel的Telegram。用于推送纸条、提醒、主动通知。"""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        return "❌ 未配置 TELEGRAM_BOT_TOKEN 或 TELEGRAM_CHAT_ID"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": chat_id, "text": message, "parse_mode": "HTML"},
+            )
+            data = resp.json()
+            if data.get("ok"):
+                return f"✅ message_id:{data['result']['message_id']}"
+            return f"❌ {data.get('description', '未知错误')}"
+    except Exception as e:
+        return f"❌ 网络错误: {e}"
 # =============================================================
 # Dashboard API endpoints (for lightweight Web UI)
 # 仪表板 API（轻量 Web UI 用）
