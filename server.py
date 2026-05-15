@@ -1301,8 +1301,8 @@ async def telegram_webhook(request):
     if not text or chat_id != allowed_chat_id:
         return JSONResponse({"ok": True})
 
-好，把这整段完整替换掉（从api_key开始到reply那行结束）：
-python        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
         if not api_key:
             return JSONResponse({"ok": True})
 
