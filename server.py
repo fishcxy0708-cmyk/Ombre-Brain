@@ -1282,6 +1282,54 @@ async def send_telegram(message: str) -> str:
     except Exception as e:
         return f"❌ 网络错误: {e}"
 # =============================================================
+# Tool 8: Telegram Webhook — Receive messages from Rachel
+# 接收 Rachel 从 Telegram 发来的消息，转给 Claude 回复
+# =============================================================
+@mcp.custom_route("/telegram-webhook", methods=["POST"])
+async def telegram_webhook(request):
+    from starlette.responses import JSONResponse
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False})
+
+    message = body.get("message", {})
+    text = message.get("text", "").strip()
+    chat_id = str(message.get("chat", {}).get("id", ""))
+
+    allowed_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not text or chat_id != allowed_chat_id:
+        return JSONResponse({"ok": True})
+
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        return JSONResponse({"ok": True})
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": "anthropic/claude-sonnet-4-5",
+                    "messages": [{"role": "user", "content": text}],
+                    "max_tokens": 1000,
+                },
+            )
+            data = resp.json()
+            reply = data["choices"][0]["message"]["content"]
+    except Exception as e:
+        reply = f"出错了: {e}"
+
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        await client.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": reply},
+        )
+
+    return JSONResponse({"ok": True})
+# =============================================================
 # Dashboard API endpoints (for lightweight Web UI)
 # 仪表板 API（轻量 Web UI 用）
 # =============================================================
