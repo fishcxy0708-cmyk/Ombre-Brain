@@ -1335,12 +1335,12 @@ async def telegram_webhook(request):
         except Exception as e:
             reply = f"出错了: {e}"
 
-    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        await client.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": reply},
-        )
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            await client.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": chat_id, "text": reply},
+            )
 
     return JSONResponse({"ok": True})
 # =============================================================
