@@ -168,8 +168,12 @@ class KeepaliveScheduler:
             logger.info("keepalive: 未配置 TG/AI 环境变量，调度器不启动")
             return
         self._running = True
-        self._task = asyncio.create_task(self._loop())
-        logger.info(f"keepalive: 调度器启动，间隔 {KA_INTERVAL_MIN} 分钟")
+        logger.info(f"keepalive: 调度器已标记启动，间隔 {KA_INTERVAL_MIN} 分钟")
+
+    async def ensure_started(self):
+        if self._running and self._task is None:
+            self._task = asyncio.create_task(self._loop())
+            logger.info("keepalive: 调度器任务已创建")
 
     def stop(self):
         self._running = False
