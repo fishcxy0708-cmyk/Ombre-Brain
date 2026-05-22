@@ -57,7 +57,9 @@ from decay_engine import DecayEngine
 from embedding_engine import EmbeddingEngine
 from import_memory import ImportEngine
 from utils import load_config, setup_logging, strip_wikilinks, count_tokens_approx
-
+from keepalive import KeepaliveScheduler, DreamEventsDB
+_ka_db: "DreamEventsDB | None" = None
+_ka_scheduler: "KeepaliveScheduler | None" = None
 # --- Load config & init logging / 加载配置 & 初始化日志 ---
 config = load_config()
 setup_logging(config.get("log_level", "INFO"))
