@@ -103,6 +103,15 @@ embedding_engine = EmbeddingEngine(config)            # Embedding engine first (
 bucket_mgr = BucketManager(config, embedding_engine=embedding_engine)  # Bucket manager / 记忆桶管理器
 dehydrator = Dehydrator(config)                      # Dehydrator / 脱水器
 decay_engine = DecayEngine(config, bucket_mgr)       # Decay engine / 衰减引擎
+# --- Init keepalive (HTTP mode only) ---
+_ka_transport = os.environ.get("OMBRE_TRANSPORT", "stdio").strip()
+if _ka_transport in ("streamable-http", "sse"):
+    _ka_db_path = os.path.join(config.get("buckets_dir", "./buckets"), "dream_events.db")
+    _ka_db = DreamEventsDB(_ka_db_path)
+    _ka_scheduler = KeepaliveScheduler(
+        db=_ka_db,
+        breath_hook_url=f"http://localhost:{OMBRE_PORT}/breath-hook",
+    )
 import_engine = ImportEngine(config, bucket_mgr, dehydrator, embedding_engine)  # Import engine / 导入引擎
 
 # --- Create MCP server instance / 创建 MCP 服务器实例 ---
