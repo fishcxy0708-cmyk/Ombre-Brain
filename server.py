@@ -575,7 +575,7 @@ async def breath(
         if _ka_scheduler is not None:
             await _ka_scheduler.ensure_started()
         max_results = min(max_results, 50)
-    max_tokens = min(max_tokens, 20000)
+        max_tokens = min(max_tokens, 20000)
 
     # --- importance_min mode: bulk fetch by importance threshold ---
     # --- 重要度批量拉取模式：跳过语义搜索，按 importance 降序返回 ---
