@@ -571,10 +571,10 @@ async def breath(
     importance_min: int = -1,
 ) -> str:
     """检索/浮现记忆。不传query或传空=自动浮现,有query=关键词检索。max_tokens控制返回总token上限(默认10000)。domain逗号分隔,valence/arousal 0~1(-1忽略)。max_results控制返回数量上限(默认20,最大50)。importance_min>=1时按重要度批量拉取(不走语义搜索,按importance降序返回最多20条)。"""
-    await decay_engine.ensure_started()
+        await decay_engine.ensure_started()
         if _ka_scheduler is not None:
             await _ka_scheduler.ensure_started()
-    max_results = min(max_results, 50)
+        max_results = min(max_results, 50)
     max_tokens = min(max_tokens, 20000)
 
     # --- importance_min mode: bulk fetch by importance threshold ---
