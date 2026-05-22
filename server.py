@@ -312,7 +312,62 @@ async def root_redirect(request):
     from starlette.responses import RedirectResponse
     return RedirectResponse(url="/dashboard")
 
+# =============================================================
+# Keepalive API routes
+# =============================================================
 
+@mcp.custom_route("/api/dream_events", methods=["POST"])
+async def dream_events_post(request):
+    from starlette.responses import JSONResponse
+    if _ka_db is None:
+        return JSONResponse({"error": "keepalive not initialized"}, status_code=503)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+    event_type = str(body.get("type", "")).strip()
+    value = str(body.get("value", "")).strip()
+    if not event_type or not value:
+        return JSONResponse({"error": "type and value required"}, status_code=400)
+    added = _ka_db.add_event(event_type, value)
+    if _ka_scheduler:
+        _ka_scheduler.update_last_chat()
+    return JSONResponse({"ok": True, "added": added})
+
+
+@mcp.custom_route("/api/dream_events", methods=["GET"])
+async def dream_events_get(request):
+    from starlette.responses import JSONResponse
+    if _ka_db is None:
+        return JSONResponse({"error": "keepalive not initialized"}, status_code=503)
+    hours = float(request.query_params.get("hours", "6"))
+    events = _ka_db.get_recent(hours=hours)
+    return JSONResponse({"events": events, "count": len(events)})
+
+
+@mcp.custom_route("/api/keepalive/trigger", methods=["POST"])
+async def keepalive_trigger(request):
+    from starlette.responses import JSONResponse
+    err = _require_auth(request)
+    if err:
+        return err
+    if _ka_scheduler is None:
+        return JSONResponse({"error": "scheduler not initialized"}, status_code=503)
+    result = await _ka_scheduler.manual_trigger()
+    return JSONResponse(result)
+
+
+@mcp.custom_route("/api/keepalive/status", methods=["GET"])
+async def keepalive_status(request):
+    from starlette.responses import JSONResponse
+    if _ka_scheduler is None:
+        return JSONResponse({"enabled": False})
+    return JSONResponse({
+        "enabled": True,
+        "configured": _ka_scheduler.is_configured(),
+        "interval_minutes": int(os.environ.get("KA_INTERVAL_MIN", "55")),
+        "active_hours": os.environ.get("KA_ACTIVE_HOURS", "8-25"),
+    })
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request):
     from starlette.responses import JSONResponse
@@ -2042,6 +2097,8 @@ if __name__ == "__main__":
             expose_headers=["*"],
         )
         logger.info("CORS middleware enabled for remote transport / 已启用 CORS 中间件")
+        if _ka_scheduler is not None:
+    _ka_scheduler.start()
         uvicorn.run(_app, host="0.0.0.0", port=OMBRE_PORT)
     else:
         mcp.run(transport=transport)
