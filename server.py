@@ -2100,7 +2100,9 @@ if __name__ == "__main__":
         )
         logger.info("CORS middleware enabled for remote transport / 已启用 CORS 中间件")
         if _ka_scheduler is not None:
-            _ka_scheduler.start()
+            async def _start_ka():
+                await _ka_scheduler.ensure_started()
+            _app.router.on_startup.append(_start_ka)
         uvicorn.run(_app, host="0.0.0.0", port=OMBRE_PORT)
     else:
         mcp.run(transport=transport)
