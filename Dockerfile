@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files / 复制项目文件
 COPY *.py .
 COPY dashboard.html .
+COPY dream_diary.html .
 COPY config.example.yaml ./config.yaml
 
 # Persistent mount point: bucket data
