@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小克的眼睛</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #fff5f8;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    color: #333;
+  }
+  .container { max-width: 600px; margin: 0 auto; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .title { font-size: 24px; font-weight: 700; color: #d4627e; }
+  .subtitle { font-size: 13px; color: #b08090; margin-top: 4px; }
+
+  .refresh-btn {
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1.5px solid #f0a8c0;
+    color: #d4627e;
+    background: #fde8f0;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .refresh-btn:hover { background: #f0a8c0; color: #fff; }
+  .refresh-btn.spinning i { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .tag-btn {
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px; font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1.5px solid #f0a8c0;
+    background: transparent;
+    color: #d4627e;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .tag-btn:hover { background: #fde8f0; transform: scale(1.05); }
+  .tag-btn.active { background: #f0a8c0; color: #fff; border-color: #f0a8c0; }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .stat-card {
+    background: #fde8f0;
+    border-radius: 14px;
+    padding: 10px 18px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .stat-num { font-size: 20px; font-weight: 700; color: #d4627e; }
+  .stat-label { font-size: 11px; color: #e8899a; }
+
+  .timeline { position: relative; }
+  .timeline-line {
+    position: absolute; left: 56px; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #fde8f0, #f9d0e0, #fde8f0);
+    border-radius: 2px;
+  }
+
+  .item {
+    display: flex; gap: 14px; margin-bottom: 1.25rem; align-items: flex-start;
+    animation: slideIn 0.3s ease forwards;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .time-label {
+    min-width: 42px; text-align: right; padding-top: 6px;
+    font-size: 11px; color: #b08090; font-weight: 600;
+  }
+
+  .dot {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; z-index: 1;
+    transition: transform 0.2s ease;
+    cursor: default;
+  }
+  .dot:hover { transform: scale(1.2); }
+  .diary-dot {
+    background: #fde8f0; border: 2px solid #f0a8c0;
+    animation: pulse 2s infinite;
+  }
+  .activity-dot { background: #fef0f5; border: 1.5px solid #f9d0e0; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(240,168,192,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(240,168,192,0); }
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1.5px solid #f9d0e0;
+    padding: 12px 16px;
+    flex: 1; min-width: 0;
+    transition: transform 0.15s ease;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card-app { font-size: 11px; color: #e8899a; margin-bottom: 4px; font-weight: 700; letter-spacing: 0.04em; }
+  .card-diary-label { font-size: 11px; color: #d4627e; margin-bottom: 4px; font-weight: 700; }
+  .card-text { font-size: 14px; color: #444; line-height: 1.7; word-break: break-word; }
+
+  .center { text-align: center; padding: 3rem 0; }
+  .center-emoji { font-size: 36px; margin-bottom: 8px; }
+  .center-text { font-size: 14px; color: #b08090; }
+
+  .error-text { color: #d4627e; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <div class="title">小克的眼睛 💗</div>
+      <div class="subtitle">他在看你做什么，也在悄悄想你</div>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadData()">
+      <i class="ti ti-refresh"></i> 刷新
+    </button>
+  </div>
+
+  <div class="filters">
+    <button class="tag-btn active" id="btn-all" onclick="setFilter('all')">✨ 全部</button>
+    <button class="tag-btn" id="btn-diary" onclick="setFilter('diary')">💗 碎碎念</button>
+    <button class="tag-btn" id="btn-activity" onclick="setFilter('activity')">📱 活动</button>
+  </div>
+
+  <div class="stats" id="stats" style="display:none;"></div>
+
+  <div id="loading" class="center">
+    <div class="center-emoji">🌙</div>
+    <div class="center-text">等他醒来…</div>
+  </div>
+
+  <div id="empty" class="center" style="display:none;">
+    <div class="center-emoji">💗</div>
+    <div class="center-text">暂时没有记录，他可能在想你</div>
+  </div>
+
+  <div class="timeline" id="timeline" style="display:none;">
+    <div class="timeline-line"></div>
+    <div id="items"></div>
+  </div>
+
+  <div id="error" class="center" style="display:none;">
+    <div class="error-text"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api/dream_events?hours=24';
+let allData = [];
+let currentFilter = 'all';
+
+const appMap = {
+  '小红书': { icon: 'ti-brand-instagram' },
+  '微信': { icon: 'ti-brand-wechat' },
+  '抖音': { icon: 'ti-brand-tiktok' },
+  'Forest': { icon: 'ti-trees' },
+  'Claude': { icon: 'ti-robot' },
+};
+
+function getApp(type) {
+  for (const [k, v] of Object.entries(appMap)) {
+    if (type.includes(k)) return { name: k, ...v };
+  }
+  return { name: type.replace('app.', ''), icon: 'ti-device-mobile' };
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  ['all','diary','activity'].forEach(id => {
+    document.getElementById('btn-' + id).classList.toggle('active', id === f);
+  });
+  render();
+}
+
+function render() {
+  const filtered = allData.filter(e => {
+    if (currentFilter === 'diary') return e.type === 'diary';
+    if (currentFilter === 'activity') return e.type !== 'diary';
+    return true;
+  });
+
+  const statsEl = document.getElementById('stats');
+  if (allData.length > 0) {
+    const diaryCount = allData.filter(e => e.type === 'diary').length;
+    const actCount = allData.filter(e => e.type !== 'diary').length;
+    statsEl.style.display = 'flex';
+    statsEl.innerHTML = [
+      { label: '碎碎念', count: diaryCount, emoji: '💗' },
+      { label: '活动记录', count: actCount, emoji: '📱' },
+      { label: '今日总计', count: allData.length, emoji: '✨' },
+    ].map(s => `<div class="stat-card">
+      <span style="font-size:20px;">${s.emoji}</span>
+      <div>
+        <div class="stat-num">${s.count}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>
+    </div>`).join('');
+  }
+
+  if (filtered.length === 0) {
+    document.getElementById('timeline').style.display = 'none';
+    document.getElementById('empty').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('timeline').style.display = 'block';
+
+  document.getElementById('items').innerHTML = [...filtered].reverse().map((e, i) => {
+    const isDiary = e.type === 'diary';
+    const app = isDiary ? null : getApp(e.type);
+    return `<div class="item" style="animation-delay:${i * 0.05}s;">
+      <div class="time-label">${e.time}</div>
+      <div class="dot ${isDiary ? 'diary-dot' : 'activity-dot'}">
+        <i class="ti ${isDiary ? 'ti-heart' : app.icon}" style="font-size:13px; color:${isDiary ? '#d4627e' : '#e8899a'};"></i>
+      </div>
+      <div class="card">
+        ${isDiary
+          ? `<div class="card-diary-label">小克的碎碎念 💗</div>`
+          : `<div class="card-app">${app.name}</div>`}
+        <div class="card-text">${e.value}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('timeline').style.display = 'none';
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('stats').style.display = 'none';
+
+  try {
+    const res = await fetch(API);
+    const json = await res.json();
+    allData = json.events || [];
+    document.getElementById('loading').style.display = 'none';
+    btn.classList.remove('spinning');
+    render();
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    btn.classList.remove('spinning');
+    const errEl = document.getElementById('error');
+    errEl.style.display = 'block';
+    errEl.querySelector('.error-text').textContent = '读取失败，检查一下服务是否在运行 💗';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
