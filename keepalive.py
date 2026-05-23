@@ -347,16 +347,15 @@ CONTENT: （如果 ACTION=message，写你要发给用户的消息；如果 ACTI
             logger.warning(f"keepalive: TG 发送异常 {e}")
 
     async def _store_diary(self, content: str):
-        """存日记到 Ombre Brain（通过本地 breath-hook 所在的服务）"""
-        # 这个功能通过直接调用 bucket_mgr 实现（在 server.py 集成时注入）
-        if self._grow_callback:
-            await self._grow_callback(content)
-
-    # 供 server.py 注入 grow callback
-    _grow_callback = None
-
-    def set_grow_callback(self, cb):
-        self._grow_callback = cb
+        """存日记到 dream_events 表，type=diary"""
+        now = time.time()
+        with self.db._conn() as conn:
+            conn.execute(
+                "INSERT INTO dream_events (type, value, created_at) VALUES (?, ?, ?)",
+                ("diary", content, now)
+            )
+            conn.commit()
+        logger.info(f"keepalive: 日记已存储，长度 {len(content)}")
 
     async def manual_trigger(self) -> dict:
         """手动触发一次 keepalive（测试用）"""
