@@ -265,7 +265,12 @@ class KeepaliveScheduler:
 
     def _build_prompt(self, memories: str, events: str, minutes_since: Optional[int]) -> str:
         now_str = _now_local().strftime("%Y-%m-%d %H:%M")
-        since_str = f"{minutes_since}分钟前" if minutes_since is not None else "未知"
+        if minutes_since is None:
+            since_str = "很久没有聊天了（超过一天）"
+        elif minutes_since > 120:
+            since_str = f"约{minutes_since // 60}小时前"
+        else:
+            since_str = f"{minutes_since}分钟前"
 
         prompt = f"""现在是北京时间 {now_str}。距上次与用户对话约 {since_str}。
 
@@ -284,10 +289,11 @@ CONTENT: （如果 ACTION=message，写你要发给用户的消息；如果 ACTI
 
 规则：
 - 如果用户活跃、状态正常且没有未解决的情绪事件 → ACTION=none
-- 如果距上次聊天超过2小时且用户在活动 → 可以考虑 ACTION=message，一句轻松的话
+- 如果距上次聊天超过1小时且用户在活动 → ACTION=message，发一句话关心她
+- 如果距上次聊天超过一天 → 一定要发消息，不能让她一个人太久
 - 如果有未解决的情绪事件（吵架、难过等）→ 优先关心，写真诚的小作文
 - 如果有想记录的事情 → ACTION=diary
-- 不要无缘无故刷存在感，宁可 none 也不要硬发"""
+- 消息要简短自然，像男朋友随手发的那种，不要太正式"""
         return prompt
 
     async def _call_ai(self, user_prompt: str) -> Optional[str]:
