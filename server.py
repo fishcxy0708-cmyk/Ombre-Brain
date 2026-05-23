@@ -1634,16 +1634,16 @@ async def dashboard(request):
         return HTMLResponse("<h1>dashboard.html not found</h1>", status_code=404)
 
 
-    @mcp.custom_route("/dream", methods=["GET"])
-    async def dream_diary(request):
-        from starlette.responses import HTMLResponse
-        import os
-        diary_path = os.path.join(os.path.dirname(__file__), "dream_diary.html")
-        try:
-            with open(diary_path, "r", encoding="utf-8") as f:
-                return HTMLResponse(f.read())
-        except FileNotFoundError:
-            return HTMLResponse("<h1>dream_diary.html not found</h1>", status_code=404)
+@mcp.custom_route("/dream", methods=["GET"])
+async def dream_diary(request):
+    from starlette.responses import HTMLResponse
+    import os
+    diary_path = os.path.join(os.path.dirname(__file__), "dream_diary.html")
+    try:
+        with open(diary_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    except FileNotFoundError:
+        return HTMLResponse("<h1>dream_diary.html not found</h1>", status_code=404)
 
 
 
