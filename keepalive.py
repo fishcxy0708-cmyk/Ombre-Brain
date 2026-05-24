@@ -154,7 +154,7 @@ class KeepaliveScheduler:
         self.db = db
         self.breath_hook_url = breath_hook_url  # 用于读记忆
         self._last_keepalive: float = 0.0
-        self._last_message_time: float = 0.0
+        self._last_message_time: float = time.time() - 3 * 3600  # 初始化为3小时前，确保第一次触发时会发消息
         self._running = False
         self._task: Optional[asyncio.Task] = None
 
