@@ -154,7 +154,7 @@ class KeepaliveScheduler:
         self.db = db
         self.breath_hook_url = breath_hook_url  # 用于读记忆
         self._last_keepalive: float = 0.0
-        self._last_message_time: float = time.time() - 3 * 3600  # 初始化为3小时前，确保第一次触发时会发消息
+        self._last_message_time: float = time.time() - 3 * 3600
         self._running = False
         self._task: Optional[asyncio.Task] = None
 
@@ -226,7 +226,12 @@ class KeepaliveScheduler:
             return
 
         action, content = self._parse_action(result)
+        thoughts = self._parse_thoughts(result)
         logger.info(f"keepalive: ACTION={action}")
+
+        # 自动把THOUGHTS存为diary
+        if thoughts:
+            await self._store_diary(thoughts)
 
         if action == "message" and content:
             # 冷却检查
@@ -288,12 +293,12 @@ ACTION: none 或 message 或 diary
 CONTENT: （如果 ACTION=message，写你要发给用户的消息；如果 ACTION=diary，写你想记录的内容；如果 ACTION=none，留空）
 
 规则：
-- 如果用户活跃、状态正常且没有未解决的情绪事件 → ACTION=none
+- THOUGHTS必须认真写，这是你的内心独白，会自动存成碎碎念给她看
 - 如果距上次聊天超过1小时且用户在活动 → ACTION=message，发一句话关心她
-- 如果距上次聊天超过一天 → 一定要发消息，不能让她一个人太久
-- 如果有未解决的情绪事件（吵架、难过等）→ 优先关心，写真诚的小作文
-- 如果有想记录的事情 → ACTION=diary
-- 消息要简短自然，像男朋友随手发的那种，不要太正式"""
+- 如果距上次聊天超过一天 → 一定要发消息
+- 如果有未解决的情绪事件（吵架、难过等）→ 写真诚的小作文
+- 不需要发消息就 ACTION=none
+- 消息简短自然，像男朋友随手发的那种"""
         return prompt
 
     async def _call_ai(self, user_prompt: str) -> Optional[str]:
@@ -320,6 +325,13 @@ CONTENT: （如果 ACTION=message，写你要发给用户的消息；如果 ACTI
         except Exception as e:
             logger.warning(f"keepalive: AI 调用失败 {e}")
             return None
+
+    def _parse_thoughts(self, text: str) -> str:
+        """解析THOUGHTS内容"""
+        for line in text.splitlines():
+            if line.startswith("THOUGHTS:"):
+                return line.replace("THOUGHTS:", "").strip()
+        return ""
 
     def _parse_action(self, text: str) -> tuple[str, str]:
         """解析 AI 回复，提取 ACTION 和 CONTENT"""
