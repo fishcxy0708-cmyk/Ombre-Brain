@@ -1376,8 +1376,8 @@ async def telegram_webhook(request):
     if not hasattr(telegram_webhook, "_history"):
         telegram_webhook._history = []
     telegram_webhook._history.append({"role": "user", "content": text})
-    if len(telegram_webhook._history) > 20:
-        telegram_webhook._history = telegram_webhook._history[-20:]
+    if len(telegram_webhook._history) > 10:
+        telegram_webhook._history = telegram_webhook._history[-10:]
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -1396,8 +1396,8 @@ async def telegram_webhook(request):
             data = resp.json()
             reply = data["choices"][0]["message"]["content"]
         telegram_webhook._history.append({"role": "assistant", "content": reply})
-        if len(telegram_webhook._history) > 20:
-            telegram_webhook._history = telegram_webhook._history[-20:]
+        if len(telegram_webhook._history) > 10:
+            telegram_webhook._history = telegram_webhook._history[-10:]
     except Exception as e:
         reply = f"出错了: {e}"
 
