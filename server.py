@@ -383,6 +383,57 @@ async def health_check(request):
 
 
 # =============================================================
+# /core-memory-hook endpoint: Stable pinned/protected memory
+# Prompt caching 专用稳定核心记忆挂载点
+# =============================================================
+@mcp.custom_route("/core-memory-hook", methods=["GET"])
+async def core_memory_hook(request):
+    from starlette.responses import PlainTextResponse
+    try:
+        all_buckets = await bucket_mgr.list_all(include_archive=False)
+        excluded_types = {"letter", "feel", "plan", "self", "i"}
+        core_buckets = []
+        for b in all_buckets:
+            meta = b.get("metadata", {})
+            if not (meta.get("pinned") or meta.get("protected")):
+                continue
+            if meta.get("type") in excluded_types:
+                continue
+            core_buckets.append(b)
+
+        if not core_buckets:
+            return PlainTextResponse("")
+
+        core_buckets.sort(key=lambda b: b.get("metadata", {}).get("importance", 0), reverse=True)
+
+        parts = []
+        char_budget = 18000
+        header = "[Ombre Brain - Core Memory]\n"
+        current_len = len(header)
+        for b in core_buckets:
+            summary = await dehydrator.dehydrate(strip_wikilinks(b.get("content", "")), {k: v for k, v in b.get("metadata", {}).items() if k != "tags"})
+            part = f"📌 [核心准则] {summary}"
+            separator_len = len("\n---\n") if parts else 0
+            remaining = char_budget - current_len - separator_len
+            if remaining <= 0:
+                break
+            if len(part) > remaining:
+                part = part[:remaining]
+            parts.append(part)
+            current_len += separator_len + len(part)
+            if current_len >= char_budget:
+                break
+
+        if not parts:
+            return PlainTextResponse("")
+        body_text = header + "\n---\n".join(parts)
+        return PlainTextResponse(body_text)
+    except Exception as e:
+        logger.warning(f"Core memory hook failed: {e}")
+        return PlainTextResponse("")
+
+
+# =============================================================
 # /breath-hook endpoint: Dedicated hook for SessionStart
 # 会话启动专用挂载点
 # =============================================================
