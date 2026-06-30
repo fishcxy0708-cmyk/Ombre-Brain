@@ -40,6 +40,7 @@ import asyncio
 import hashlib
 import hmac
 import secrets
+import sqlite3
 import time
 import json as _json_lib
 import httpx
@@ -380,6 +381,89 @@ async def health_check(request):
         })
     except Exception as e:
         return JSONResponse({"status": "error", "detail": str(e)}, status_code=500)
+
+
+# =============================================================
+# Temporary admin export endpoints for migration
+# Disabled unless OMBRE_EXPORT_TOKEN is set.
+# =============================================================
+def _require_export_auth(request):
+    from starlette.responses import JSONResponse
+
+    token = os.environ.get("OMBRE_EXPORT_TOKEN", "")
+    if not token:
+        return JSONResponse({"error": "not found"}, status_code=404)
+
+    expected = f"Bearer {token}"
+    actual = request.headers.get("authorization", "")
+    if not hmac.compare_digest(actual, expected):
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+
+    return None
+
+
+@mcp.custom_route("/admin/export/buckets.ndjson", methods=["GET"])
+async def admin_export_buckets_ndjson(request):
+    from starlette.responses import StreamingResponse
+
+    err = _require_export_auth(request)
+    if err:
+        return err
+
+    include_archive = request.query_params.get("include_archive", "false").strip().lower()
+    include_archive = include_archive in ("1", "true", "yes", "on")
+
+    async def _iter_buckets():
+        buckets = await bucket_mgr.list_all(include_archive=include_archive)
+        for bucket in buckets:
+            yield _json_lib.dumps({
+                "id": bucket.get("id"),
+                "metadata": bucket.get("metadata", {}),
+                "content": bucket.get("content", ""),
+                "path": bucket.get("path", ""),
+            }, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+    return StreamingResponse(_iter_buckets(), media_type="application/x-ndjson")
+
+
+@mcp.custom_route("/admin/export/embedding-stats", methods=["GET"])
+async def admin_export_embedding_stats(request):
+    from starlette.responses import JSONResponse
+
+    err = _require_export_auth(request)
+    if err:
+        return err
+
+    db_path = embedding_engine.db_path
+    row_count = 0
+    sample_dimension = None
+    storage_format = "sqlite table embeddings; embedding column is JSON array stored as TEXT"
+
+    if os.path.exists(db_path):
+        conn = sqlite3.connect(db_path)
+        try:
+            row = conn.execute("SELECT COUNT(*) FROM embeddings").fetchone()
+            row_count = int(row[0]) if row else 0
+            sample = conn.execute(
+                "SELECT embedding FROM embeddings WHERE embedding IS NOT NULL LIMIT 1"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        if sample and sample[0]:
+            try:
+                parsed = _json_lib.loads(sample[0])
+                if isinstance(parsed, list):
+                    sample_dimension = len(parsed)
+            except Exception:
+                sample_dimension = None
+
+    return JSONResponse({
+        "db_path": db_path,
+        "row_count": row_count,
+        "sample_embedding_dimension": sample_dimension,
+        "embedding_storage_format": storage_format,
+    })
 
 
 # =============================================================
